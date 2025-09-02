@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Syllable Chop – Ninja Edition</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Yuji+Syuku&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --background: #2a2a2d;
+    --board-bg: #1c1c1e;
+    --tile-consonant: #fa8072;
+    --tile-vowel: #fffaf0;
+    --tile-text: #1a1a1a;
+    --accent: #ff4136;
+    --text-color: #e0e0e0;
+    --input-bg: #333336;
+    --plank1: #8b5a2b;
+    --plank2: #a06b3b;
+    --plank3: #7a4a20;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, sans-serif;
+    background: var(--background);
+    color: var(--text-color);
+    display: flex;
+    min-height: 100vh;
+  }
+  .wrap { margin: auto; width: min(980px, 92vw); }
+  
+  .word-input-area {
+    background-color: var(--input-bg);
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    border: 1px solid #444;
+  }
+  .word-input-area label {
+    display: block;
+    font-weight: 700;
+    margin-bottom: .75rem;
+    font-size: 1.1rem;
+    font-family: 'Yuji Syuku', serif;
+  }
+  .word-input-area textarea {
+    width: 100%;
+    padding: .75rem;
+    border-radius: 4px;
+    border: 1px solid #555;
+    background-color: #2a2a2d;
+    color: var(--text-color);
+    font-family: monospace;
+    font-size: 1rem;
+    resize: vertical;
+  }
+  .word-input-area button {
+    margin-top: 1rem;
+    width: 100%;
+    background-color: var(--accent);
+    color: white;
+    font-size: 1.2rem;
+    padding: .8rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    border: none;
+    transition: background-color .2s;
+    font-family: 'Yuji Syuku', serif;
+  }
+  .word-input-area button:hover {
+    background-color: #d92c21;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin: 1rem 0;
+    flex-wrap: wrap;
+    border-bottom: 2px solid #444;
+    padding-bottom: 1rem;
+  }
+  h1 { 
+    font-family: 'Yuji Syuku', serif;
+    font-size: clamp(1.8rem, 3vw, 2.5rem); 
+    margin: 0; 
+    color: var(--accent);
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+  }
+  .controls { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; }
+  button, .pill {
+    border: 1px solid #555;
+    background: #333;
+    color: #fff;
+    padding: .55rem 1rem;
+    border-radius: 4px;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+  }
+  button.secondary { background: #444; }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  .pill { background: transparent; border-color: #666; }
+  
+  .board {
+    position: relative;
+    width: 100%;
+    height: 260px;
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0,0,0,.5), inset 0 0 15px rgba(0,0,0,0.4);
+    background: 
+      repeating-linear-gradient(90deg,rgba(0,0,0,.05) 0 4px,transparent 4px 8px),
+      linear-gradient(180deg,rgba(255,255,255,.08),rgba(0,0,0,.05)),
+      repeating-linear-gradient(180deg,var(--plank1) 0 32px,var(--plank2) 32px 64px,var(--plank3) 64px 96px);
+    border: 1px solid #444;
+  }
+  .label {
+    position: absolute;
+    top: 10px;
+    left: 14px;
+    background: rgba(0,0,0,.5);
+    padding: .25rem .5rem;
+    border-radius: 4px;
+    font-size: .85rem;
+  }
+  .tile-row {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .5rem;
+    padding: 0 28px;
+    user-select: none;
+  }
+  .tile {
+    min-width: 48px;
+    height: 64px;
+    padding: 0 .6rem;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: clamp(26px, 5.5vw, 40px);
+    text-transform: uppercase;
+    box-shadow: inset 0 2px 0 rgba(255,255,255,.6), 0 6px 12px rgba(0,0,0,.18);
+    transition: transform .3s cubic-bezier(0.25, 1, 0.5, 1);
+  }
+  .consonant { background: var(--tile-consonant); color: var(--tile-text); }
+  .vowel { background: var(--tile-vowel); color: var(--tile-text); }
+  .digraph { border-bottom: 4px solid rgba(0,0,0,.5); }
+
+  .chop-indicator {
+    position: absolute;
+    top: 0;
+    width: 4px;
+    height: 100%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+    transform: translateX(-2px);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .08s;
+    border-radius: 2px;
+  }
+  .katana {
+    position: absolute;
+    width: 180px;
+    height: 180px;
+    pointer-events: none;
+    opacity: 0;
+    transform-origin: 100% 0%;
+    filter: drop-shadow(0 8px 10px rgba(0,0,0,.5));
+  }
+  .shake { animation: shake .36s linear; }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%{transform:translateX(-8px)} 40%{transform:translateX(6px)}
+    60%{transform:translateX(-4px)} 80%{transform:translateX(2px)}
+  }
+  .toast {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--accent);
+    color: #fff;
+    padding: .6rem 1rem;
+    border-radius: 4px;
+    font-weight: 700;
+    opacity: 0;
+    transition: opacity .25s, transform .25s;
+    pointer-events: none;
+    font-family: 'Yuji Syuku', serif;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(-6px); }
+  footer {
+    margin-top: .9rem;
+    display: flex;
+    gap: .5rem;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    font-size: 0.9rem;
+    opacity: 0.7;
+  }
+  
+  .end-game-screen {
+    position: fixed; inset: 0;
+    background-color: rgba(0,0,0,0.7);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+  }
+  .end-game-screen.show { opacity: 1; pointer-events: auto; }
+  .end-game-card {
+    background: var(--input-bg);
+    border: 1px solid #555;
+    padding: 2rem 3rem;
+    border-radius: 8px;
+    text-align: center;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    transform: scale(0.9);
+    transition: transform 0.3s ease;
+  }
+  .end-game-screen.show .end-game-card { transform: scale(1); }
+  .end-game-card h2 {
+    font-family: 'Yuji Syuku', serif;
+    font-size: 3rem; margin: 0 0 0.5rem; color: var(--accent);
+  }
+  .end-game-card p { font-size: 1.2rem; color: #ccc; margin: 0 0 1.5rem; }
+  .end-game-card .score { font-weight: bold; color: #fff; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="word-input-area" id="wordInputContainer">
+    <label for="wordInput">Enter Word Scrolls (e.g., "syl-la-ble")</label>
+    <textarea id="wordInput" rows="5" placeholder="sun-set&#10;re-mem-ber&#10;fan-tas-tic"></textarea>
+    <button id="loadWordsBtn">Begin Training</button>
+  </div>
+
+  <header>
+    <h1>Syllable Chop</h1>
+    <div class="controls">
+      <span class="pill" id="progress">0 / 0</span>
+      <button id="nextBtn" class="secondary" disabled>Next word →</button>
+      <button id="resetBtn" title="Restart">↺ Reset</button>
+    </div>
+  </header>
+
+  <div class="board" id="board" aria-label="Dojo floor">
+    <div class="label">Click between tiles to chop the syllable.</div>
+    <div class="tile-row" id="row"></div>
+    <div class="chop-indicator" id="indicator"></div>
+    <!-- Katana SVG for the chop animation -->
+    <svg class="katana" id="katana" viewBox="0 0 100 100" aria-hidden="true">
+        <defs>
+            <linearGradient id="blade" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" style="stop-color:#f0f0f0"/>
+                <stop offset="50%" style="stop-color:#d0d0d0"/>
+                <stop offset="100%" style="stop-color:#f0f0f0"/>
+            </linearGradient>
+        </defs>
+        <g transform="rotate(45 50 50) translate(0, -10)">
+            <path d="M 90 10 L 10 90 L 8 88 L 88 8 Z" fill="url(#blade)" stroke="#555" stroke-width="0.5" />
+            <rect x="6" y="90" width="4" height="8" fill="#333" />
+            <rect x="2" y="92" width="12" height="4" rx="1" fill="#c0392b" />
+        </g>
+    </svg>
+    <div class="toast" id="toast">Nice chop!</div>
+  </div>
+
+  <footer>
+    <small>Vowels = Ivory; Consonants = Salmon; Digraphs underlined.</small>
+  </footer>
+</div>
+
+<div class="end-game-screen" id="endGameScreen">
+  <div class="end-game-card">
+    <h2>Great Job!</h2>
+    <p>First try score: <span id="finalScore" class="score">0 / 0</span></p>
+    <button id="playAgainBtn">Train Again</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  const defaultWords = [
+    { parts:["sun","set"] }, { parts:["re","mem","ber"] }, { parts:["fan","tas","tic"] }
+  ];
+  const digraphs = ["sh","th","ch","wh","ck","ph","ng","nk"];
+
+  function buildTiles(parts){
+    const full = parts.join(""); const letters = []; let i = 0;
+    while(i < full.length){
+      const pair = full.slice(i, i + 2);
+      if(digraphs.includes(pair)){
+        letters.push({text: pair, type: classify(pair), digraph: true});
+        i += 2;
+      } else {
+        const ch = full[i];
+        letters.push({text: ch, type: classify(ch), digraph: false});
+        i += 1;
+      }
+    }
+    
+    const breakIndices = [];
+    let cumulativeTileCount = 0;
+    for (let i = 0; i < parts.length - 1; i++) {
+        cumulativeTileCount += countTiles(parts[i]);
+        breakIndices.push(cumulativeTileCount);
+    }
+    return { letters, breakIndices };
+  }
+
+  function countTiles(seg){
+    let i = 0, c = 0;
+    while(i < seg.length){
+      if(i + 1 < seg.length && digraphs.includes(seg.slice(i, i + 2))){ c++; i += 2; } else { c++; i += 1; }
+    }
+    return c;
+  }
+
+  function classify(token){
+    return token.split("").every(c => "aeiou".includes(c)) ? "vowel" : "consonant";
+  }
+
+  const board = document.getElementById('board');
+  const row = document.getElementById('row');
+  const indicator = document.getElementById('indicator');
+  const katana = document.getElementById('katana');
+  const toast = document.getElementById('toast');
+  const progress = document.getElementById('progress');
+  const nextBtn = document.getElementById('nextBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const wordInput = document.getElementById('wordInput');
+  const loadWordsBtn = document.getElementById('loadWordsBtn');
+  const wordInputContainer = document.getElementById('wordInputContainer');
+  const endGameScreen = document.getElementById('endGameScreen');
+  const finalScoreEl = document.getElementById('finalScore');
+  const playAgainBtn = document.getElementById('playAgainBtn');
+
+  let currentWords = [];
+  let wordIndex = 0;
+  let currentWordData = null;
+  let chopBoundaries = [];
+  let firstTrySuccesses = 0;
+  let isFirstAttemptForWord = true;
+  let correctlyChoppedIndices = [];
+
+  function render(){
+    isFirstAttemptForWord = true;
+    correctlyChoppedIndices = [];
+    if (!currentWords.length || wordIndex >= currentWords.length) {
+        row.innerHTML = '<div style="font-weight: bold; color: #777; font-family: \'Yuji Syuku\', serif;">Load scrolls to begin training...</div>';
+        progress.textContent = `${currentWords.length > 0 ? wordIndex + 1 : 0} / ${currentWords.length}`;
+        return;
+    };
+
+    const data = buildTiles(currentWords[wordIndex].parts);
+    currentWordData = data;
+    
+    row.className = 'tile-row';
+    row.innerHTML = '';
+    indicator.style.opacity = 0;
+    katana.style.opacity = 0;
+    toast.classList.remove('show');
+    nextBtn.disabled = true;
+    progress.textContent = `${wordIndex + 1} / ${currentWords.length}`;
+
+    data.letters.forEach((t) => {
+      const el = document.createElement('div');
+      el.className = `tile ${t.type} ${t.digraph ? 'digraph' : ''}`;
+      el.textContent = t.text;
+      row.appendChild(el);
+    });
+
+    [...row.children].forEach(tile => tile.style.transform = '');
+
+    requestAnimationFrame(() => {
+      const boardRect = board.getBoundingClientRect();
+      const tiles = [...row.children];
+      chopBoundaries = [];
+      for(let i = 0; i < tiles.length - 1; i++){
+        const a = tiles[i].getBoundingClientRect();
+        const b = tiles[i+1].getBoundingClientRect();
+        const mid = (a.right + b.left) / 2 - boardRect.left;
+        chopBoundaries.push({ x: mid, index: i + 1 });
+      }
+    });
+  }
+
+  function parseWordText(text) {
+    return text.split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 0 && line.includes('-'))
+      .map(line => ({ parts: line.split('-') }));
+  }
+
+  function handleLoadWords() {
+    const text = wordInput.value;
+    const parsedWords = parseWordText(text);
+
+    if (parsedWords.length === 0) {
+      showToast('No valid scrolls found!');
+      resetGame();
+      return;
+    }
+
+    currentWords = parsedWords;
+    wordIndex = 0;
+    firstTrySuccesses = 0;
+    render();
+    showToast(`Loaded ${currentWords.length} scrolls!`);
+    wordInputContainer.style.display = 'none';
+  }
+
+  function updateTilePositions() {
+    const tiles = [...row.children];
+    const gap = 20; // The space for each chop
+    let offset = 0;
+    
+    // Center the whole group first
+    const totalGaps = correctlyChoppedIndices.length;
+    const initialOffset = - (totalGaps * gap) / 2;
+    
+    for (let i = 0; i < tiles.length; i++) {
+        // Before applying this tile's offset, check if a chop happens *before* this tile
+        if (correctlyChoppedIndices.includes(i)) {
+            offset += gap;
+        }
+        tiles[i].style.transform = `translateX(${initialOffset + offset}px)`;
+    }
+  }
+
+  function doChop(attemptedIndex){
+    const chopX = Number(indicator.style.left.replace('px','')) - 90;
+    katana.style.left = `${Math.max(0, Math.min(board.clientWidth - 180, chopX))}px`;
+    katana.style.top = '-90px';
+    katana.style.opacity = 1;
+    
+    katana.animate([
+      { transform: 'translate(0, 0) rotate(0deg)', opacity: 1 },
+      { transform: 'translate(20px, 120px) rotate(20deg)', opacity: 1 },
+      { transform: 'translate(20px, 120px) rotate(20deg)', opacity: 0 }
+    ], { duration: 300, easing: 'ease-in-out' });
+    
+    const isValidBreak = currentWordData.breakIndices.includes(attemptedIndex);
+    const isAlreadyChopped = correctlyChoppedIndices.includes(attemptedIndex);
+
+    setTimeout(() => {
+        if(isValidBreak && !isAlreadyChopped){
+            correctlyChoppedIndices.push(attemptedIndex);
+            updateTilePositions();
+            playCrackSound();
+            showToast('Clean cut!');
+
+            // Check if word is complete
+            if (correctlyChoppedIndices.length === currentWordData.breakIndices.length) {
+                if (isFirstAttemptForWord) {
+                    firstTrySuccesses++;
+                }
+                nextBtn.disabled = false;
+                showToast('Word complete!');
+            }
+        } else if (isAlreadyChopped) {
+            // Optional: give feedback that it's already done
+            showToast('Already chopped!');
+        } else {
+            isFirstAttemptForWord = false;
+            row.classList.add('shake');
+            playGruntSound();
+            showToast('Missed! Try again.');
+            setTimeout(() => row.classList.remove('shake'), 380);
+        }
+    }, 150);
+  }
+  
+  function showEndScreen() {
+    finalScoreEl.textContent = `${firstTrySuccesses} / ${currentWords.length}`;
+    endGameScreen.classList.add('show');
+  }
+
+  function resetGame() {
+    wordInputContainer.style.display = 'block';
+    endGameScreen.classList.remove('show');
+    currentWords = [];
+    wordIndex = 0;
+    firstTrySuccesses = 0;
+    render();
+    nextBtn.disabled = true;
+    showToast('Enter new scrolls to train.');
+  }
+
+  loadWordsBtn.addEventListener('click', handleLoadWords);
+  resetBtn.addEventListener('click', resetGame);
+  playAgainBtn.addEventListener('click', resetGame);
+  
+  board.addEventListener('mousemove', (e) => {
+    if(!chopBoundaries.length || !nextBtn.disabled) return;
+    const x = e.clientX - board.getBoundingClientRect().left;
+    
+    let nearest = chopBoundaries[0];
+    let bestDist = Math.abs(nearest.x - x);
+    for(const b of chopBoundaries){
+      const d = Math.abs(b.x - x);
+      if(d < bestDist){ bestDist = d; nearest = b; }
+    }
+    indicator.style.left = nearest.x + 'px';
+    indicator.style.opacity = 1;
+    indicator.dataset.idx = nearest.index;
+  });
+  
+  board.addEventListener('mouseleave', () => {
+      indicator.style.opacity = 0;
+  });
+
+  board.addEventListener('click', () => {
+    if(!indicator.dataset.idx || !nextBtn.disabled) return;
+    doChop(Number(indicator.dataset.idx));
+  });
+
+  nextBtn.addEventListener('click', () => {
+    if(wordIndex < currentWords.length - 1){
+      wordIndex++;
+      render();
+    } else {
+      showEndScreen();
+    }
+  });
+
+  function showToast(message){
+    toast.textContent = message;
+    toast.classList.add('show');
+    clearTimeout(showToast.timeout);
+    showToast.timeout = setTimeout(() => toast.classList.remove('show'), 1500);
+  }
+
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  let audioCtx;
+
+  function getAudioContext() {
+    if (!audioCtx) {
+      audioCtx = new AudioContext();
+    }
+    return audioCtx;
+  }
+
+  function playCrackSound(){
+      const ctx = getAudioContext();
+      const now = ctx.currentTime;
+      const source = ctx.createBufferSource();
+      const buffer = ctx.createBuffer(1, ctx.sampleRate * 0.1, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < data.length; i++) {
+          data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / data.length, 2);
+      }
+      source.buffer = buffer;
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.5, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+      source.connect(gain).connect(ctx.destination);
+      source.start(now);
+  }
+  function playGruntSound(){
+      const ctx = getAudioContext();
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(120, now);
+      osc.frequency.exponentialRampToValueAtTime(80, now + 0.15);
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.exponentialRampToValueAtTime(0.4, now + 0.02);
+      // Corrected a typo here from 'Rpm' to 'Ramp'
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.15);
+  }
+  
+  function initialize() {
+    const defaultText = defaultWords.map(w => w.parts.join('-')).join('\n');
+    wordInput.value = defaultText;
+    render();
+  }
+
+  initialize();
+})();
+</script>
+</body>
+</html>
+
